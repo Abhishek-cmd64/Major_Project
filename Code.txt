@@ -1,0 +1,145 @@
+#include<LiquidCrystal.h>
+LiquidCrystal lcd(7,8,9,10,11,12);
+#include <SoftwareSerial.h>
+long t2=0, t3=0, t4=0;
+SoftwareSerial ser(5, 6); // RX, TX
+String stri, strj, strk;
+int theft=0;
+char buf1[16];
+char buf2[16];
+char buf3[16];
+// replace with your channel's thingspeak API keyString apiKey = "ZMRIIM142D84QD0H";
+int timesTosend=1;
+int count2=0;
+int count3=0;
+int i=0;
+int sem=0;
+int count =0;
+int count1 =0;
+int bill = 50;
+long measurementStartTime = 0;
+int sensepin = A4; //energy meter
+void setup(){
+Serial.begin(9600);
+lcd.begin(16,2);
+ser.begin(115200);
+// reset ESP8266
+ser.println("AT+RST");
+delay(500);
+ser.println("AT+CWMODE=3");
+delay(500);
+ser.println("AT+CWJAP=\"project\",\"12345678\"");delay(500);
+lcd.setCursor(0,0);
+lcd.print("Energy Meter");
+10
+lcd.setCursor(0,1);
+lcd.print("Count:");
+analogReference(DEFAULT);
+pinMode(A3, OUTPUT);
+digitalWrite(A3, HIGH); //relay
+pinMode(A5, OUTPUT);
+digitalWrite(A5, LOW); //buzzer
+}
+void loop(){
+// Serial.println(analogRead(A0));
+if(analogRead(A0)>500)
+{
+digitalWrite(A3, LOW);
+}
+else
+{
+digitalWrite(A3, HIGH);
+}
+if((analogRead(A4) > 500) && (sem == 0))
+{
+sem = 1;
+count1=count1+10;
+count=count+10;;
+Serial.println(count1);
+}
+lcd.setCursor(8,1);
+lcd.print(count);
+if((analogRead(A4) <= 500) && (sem == 1))
+{
+sem = 0;
+}
+//if(i==0)
+//{
+//Serial.println("Recharge Now");
+//
+// digitalWrite(A3, HIGH); //relay
+//
+//}
+//if(i>0)
+11
+//{
+// digitalWrite(A3, LOW); //relay
+//}
+//if(count==5 && i >0)
+if(count==50)
+{
+// count = 0;
+}
+stri = dtostrf(count, 4, 1, buf1);
+// Serial.print(stri);
+// Serial.println(" ");
+if(millis() - t2>15000)
+{
+t2=millis();
+// TCP connection
+String cmd1 = "AT+CIPSTART=\"TCP\",\"";
+cmd1 += "184.106.153.149"; // api.thingspeak.comcmd1 += "\",80";
+ser.println(cmd1);
+if(ser.find("Error")){
+//Serial.println("AT+CIPSTART error");
+return;
+}
+// prepare GET string
+String getStr1 = "GET /update?api_key=";
+getStr1 += apiKey;
+getStr1 +="&field1=";
+getStr1 += String(stri);
+getStr1 += "\r\n\r\n";
+// send data length
+cmd1 = "AT+CIPSEND=";
+cmd1 += String(getStr1.length());
+ser.println(cmd1);
+12
+if(ser.find(">")){
+ser.print(getStr1);
+}
+else{
+ser.println("AT+CIPCLOSE");
+// alert user
+Serial.println("AT+CIPCLOSE");
+}
+}
+if (millis() - measurementStartTime >= 10000) //timeisup
+{
+Serial.println("10secs");
+measurementStartTime = millis();
+if(count1 > 50)
+{
+lcd.setCursor(0,0);
+lcd.print("Theft ");
+Serial.println("Theft detected");
+digitalWrite(A5, HIGH); //buzzer
+delay(1000);
+digitalWrite(A5, LOW);
+count2=0;
+}
+if(count1 == 40)
+{
+lcd.setCursor(0,0);
+lcd.print("Overload ");
+Serial.println("Overload detected");
+digitalWrite(A5, HIGH); //buzzer
+delay(1000);
+digitalWrite(A5, LOW);
+count2=0;
+}
+count1=0;
+}
+}
+13
+SIMULATION
